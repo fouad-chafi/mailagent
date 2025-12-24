@@ -21,17 +21,18 @@ from classifier import classifier
 from response_generator import response_generator
 from llm_service import llm_service, LLMConnectionError, LLMServiceError
 
+LOGS_DIR = Path(__file__).parent.parent / "logs"
+LOGS_DIR.mkdir(exist_ok=True)
+
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     handlers=[
-        logging.FileHandler("logs/app.log"),
+        logging.FileHandler(LOGS_DIR / "app.log"),
         logging.StreamHandler(),
     ],
 )
 logger = logging.getLogger(__name__)
-
-Path("logs").mkdir(exist_ok=True)
 
 app = FastAPI(title="MailAgent API", version="1.0.0")
 

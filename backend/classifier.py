@@ -130,18 +130,23 @@ class Classifier:
 
     def _build_classification_prompt(self, email_data: dict) -> str:
         body = email_data.get("body_text") or email_data.get("snippet", "")
-        body = self.llm.truncate_for_context(body, 5000)
+        # Use snippet for classification to save tokens
+        snippet = email_data.get("snippet", "")
+        if len(snippet) > 500:
+            snippet = snippet[:500] + "..."
+        subject = email_data.get('subject', '')
 
         return f"""From: {email_data.get('from_addr', 'Unknown')}
-Subject: {email_data.get('subject', '(no subject)')}
-To: {email_data.get('to_addr', 'Unknown')}
+Subject: {subject[:200]}
 
-Body:
-{body}"""
+Preview:
+{snippet}"""
 
     def _build_summary_prompt(self, email_data: dict) -> str:
         body = email_data.get("body_text") or email_data.get("snippet", "")
-        body = self.llm.truncate_for_context(body, 8000)
+        # Limit to 1500 chars for summary to stay within 4096 token context
+        if len(body) > 1500:
+            body = body[:1500] + "..."
 
         return f"""From: {email_data.get('from_addr', 'Unknown')}
 Subject: {email_data.get('subject', '(no subject)')}

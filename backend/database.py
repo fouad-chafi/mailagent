@@ -12,8 +12,12 @@ from typing import Generator
 import json
 
 from config import settings
+from pathlib import Path
 
 Base = declarative_base()
+
+DATA_DIR = Path(__file__).parent.parent / "data"
+DATA_DIR.mkdir(exist_ok=True)
 
 
 class Email(Base):
@@ -76,8 +80,9 @@ class SyncHistory(Base):
 
 class EmailDB:
     def __init__(self):
+        db_path = DATA_DIR / "emails.db"
         self.engine = create_engine(
-            settings.DATABASE_URL.replace("sqlite:///", "sqlite:///"),
+            f"sqlite:///{db_path}",
             connect_args={"check_same_thread": False},
         )
         self.SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=self.engine)

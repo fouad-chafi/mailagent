@@ -5,12 +5,23 @@ Utilise pydantic-settings pour la gestion des variables d'environnement.
 
 from pydantic_settings import BaseSettings
 from typing import List
+from pathlib import Path
 
 
 class Settings(BaseSettings):
     # Gmail API
     GMAIL_CREDENTIALS_PATH: str = "credentials/gmail_credentials.json"
     GMAIL_TOKEN_PATH: str = "credentials/token.pickle"
+
+    @property
+    def GMAIL_CREDENTIALS_FULL_PATH(self) -> Path:
+        base_path = Path(__file__).parent.parent
+        return base_path / self.GMAIL_CREDENTIALS_PATH
+
+    @property
+    def GMAIL_TOKEN_FULL_PATH(self) -> Path:
+        base_path = Path(__file__).parent.parent
+        return base_path / self.GMAIL_TOKEN_PATH
 
     # LM Studio
     LM_STUDIO_URL: str = "http://localhost:1234/v1/chat/completions"

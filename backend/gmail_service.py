@@ -29,8 +29,8 @@ from database import db, Email as EmailModel
 logger = logging.getLogger(__name__)
 
 SCOPES = ["https://www.googleapis.com/auth/gmail.modify"]
-TOKEN_PICKLE_PATH = Path(settings.GMAIL_TOKEN_PATH)
-CREDENTIALS_PATH = Path(settings.GMAIL_CREDENTIALS_PATH)
+TOKEN_PICKLE_PATH = settings.GMAIL_TOKEN_FULL_PATH
+CREDENTIALS_PATH = settings.GMAIL_CREDENTIALS_FULL_PATH
 
 
 class GmailServiceError(Exception):

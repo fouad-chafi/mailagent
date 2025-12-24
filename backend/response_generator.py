@@ -70,11 +70,12 @@ class ResponseGenerator:
             raise
 
     async def improve_response(self, email_data: dict, draft: str, feedback: str) -> str:
+        body = email_data.get('body_text', '')[:1000]
         prompt = f"""Original email:
 From: {email_data.get('from_addr', 'Unknown')}
 Subject: {email_data.get('subject', '(no subject)')}
 
-{email_data.get('body_text', '')[:2000]}
+{body}
 
 Current draft response:
 {draft}
@@ -142,7 +143,9 @@ Please improve the draft based on the feedback."""
 
     def _build_generation_prompt(self, email_data: dict) -> str:
         body = email_data.get("body_text") or email_data.get("snippet", "")
-        body = self.llm.truncate_for_context(body, 8000)
+        # Limit to 2000 chars to stay within 4096 token context
+        if len(body) > 2000:
+            body = body[:2000] + "..."
 
         return f"""From: {email_data.get('from_addr', 'Unknown')}
 Subject: {email_data.get('subject', '(no subject)')}
