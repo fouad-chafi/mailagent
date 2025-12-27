@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { User, Clock, FileText, RefreshCw } from 'lucide-react';
+import { User, Clock, FileText, RefreshCw, Loader2 } from 'lucide-react';
 
-export default function EmailDetail({ email, onGenerateResponses }) {
+export default function EmailDetail({ email, onGenerateResponses, generating }) {
   const formatDate = (dateStr) => {
     if (!dateStr) return '';
     return new Date(dateStr).toLocaleString();
@@ -44,10 +44,15 @@ export default function EmailDetail({ email, onGenerateResponses }) {
           <h2 className="text-xl font-semibold">{email.subject || '(no subject)'}</h2>
           <button
             onClick={() => onGenerateResponses && onGenerateResponses(email)}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+            disabled={generating}
+            className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 transition-colors"
           >
-            <RefreshCw className="w-4 h-4" />
-            Generate Responses
+            {generating ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <RefreshCw className="w-4 h-4" />
+            )}
+            {generating ? 'Generating...' : 'Generate Responses'}
           </button>
         </div>
 

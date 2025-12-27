@@ -14,6 +14,7 @@ function App() {
   const [responses, setResponses] = useState([]);
   const [loading, setLoading] = useState(false);
   const [syncing, setSyncing] = useState(false);
+  const [generating, setGenerating] = useState(false);
   const [filters, setFilters] = useState({});
 
   useEffect(() => {
@@ -94,12 +95,15 @@ function App() {
   };
 
   const handleGenerateResponses = async (email) => {
+    setGenerating(true);
     try {
       const data = await apiService.getResponses(email.id);
       setResponses(data.responses || []);
     } catch (error) {
       console.error('Failed to generate responses:', error);
       alert('Failed to generate responses: ' + error.message);
+    } finally {
+      setGenerating(false);
     }
   };
 
@@ -173,6 +177,7 @@ function App() {
           <EmailDetail
             email={selectedEmail}
             onGenerateResponses={handleGenerateResponses}
+            generating={generating}
           />
           {selectedEmail && (
             <ResponseEditor
@@ -180,6 +185,7 @@ function App() {
               email={selectedEmail}
               onSend={handleSendResponse}
               onImprove={handleImproveResponse}
+              generating={generating}
             />
           )}
         </div>

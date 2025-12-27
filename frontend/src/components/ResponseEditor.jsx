@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
-import { Send, Edit2, RotateCcw } from 'lucide-react';
+import { Send, Edit2, RotateCcw, Loader2 } from 'lucide-react';
 
-export default function ResponseEditor({ responses, email, onSend, onImprove }) {
+export default function ResponseEditor({ responses, email, onSend, onImprove, generating }) {
   const [selectedIndex, setSelectedIndex] = useState(null);
   const [isSending, setIsSending] = useState(false);
+  // Local state to track edited content for each response
+  const [editedContents, setEditedContents] = useState({});
 
   const getToneLabel = (tone) => {
     const labels = {
@@ -23,13 +25,25 @@ export default function ResponseEditor({ responses, email, onSend, onImprove }) 
     return colors[tone] || colors.neutral;
   };
 
-  const handleSend = async (response) => {
+  const getContent = (response, index) => {
+    // Return edited content if available, otherwise original
+    return editedContents[index] !== undefined ? editedContents[index] : response.content;
+  };
+
+  const handleContentChange = (index, newContent) => {
+    setEditedContents(prev => ({
+      ...prev,
+      [index]: newContent
+    }));
+  };
+
+  const handleSend = async (response, index) => {
     setIsSending(true);
     try {
       await onSend({
         to: email.from_addr,
         subject: `Re: ${email.subject}`,
-        body: response.content,
+        body: getContent(response, index),
         in_reply_to: email.id,
       });
     } finally {
@@ -40,7 +54,14 @@ export default function ResponseEditor({ responses, email, onSend, onImprove }) 
   if (!responses || responses.length === 0) {
     return (
       <div className="p-6 text-center text-gray-500">
-        <p>No responses generated yet</p>
+        {generating ? (
+          <div className="flex items-center justify-center gap-2">
+            <Loader2 className="w-5 h-5 animate-spin" />
+            <p>Generating AI responses...</p>
+          </div>
+        ) : (
+          <p>No responses generated yet</p>
+        )}
       </div>
     );
   }
@@ -52,66 +73,68 @@ export default function ResponseEditor({ responses, email, onSend, onImprove }) 
       </h3>
 
       <div className="space-y-4">
-        {responses.map((response, index) => (
-          <div
-            key={response.id || index}
-            className={`border-2 rounded-lg p-4 transition-all ${getToneColor(response.tone)}`}
-          >
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-semibold uppercase">
-                  {getToneLabel(response.tone)}
-                </span>
-                {response.sent && (
-                  <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded">
-                    Sent
+        {responses.map((response, index) => {
+          const currentContent = getContent(response, index);
+          return (
+            <div
+              key={response.id || index}
+              className={`border-2 rounded-lg p-4 transition-all ${getToneColor(response.tone)}`}
+            >
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-semibold uppercase">
+                    {getToneLabel(response.tone)}
                   </span>
+                  {response.sent && (
+                    <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded">
+                      Sent
+                    </span>
+                  )}
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setSelectedIndex(selectedIndex === index ? null : index)}
+                    className="p-1 hover:bg-white rounded transition-colors"
+                    title="Edit"
+                  >
+                    <Edit2 className="w-4 h-4 text-gray-500" />
+                  </button>
+                </div>
+              </div>
+
+              <div className="mb-3">
+                {selectedIndex === index ? (
+                  <textarea
+                    value={currentContent}
+                    onChange={(e) => handleContentChange(index, e.target.value)}
+                    className="w-full p-3 border rounded-lg text-sm min-h-[150px] resize-y focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="Type your response here..."
+                  />
+                ) : (
+                  <p className="text-sm whitespace-pre-wrap">{currentContent}</p>
                 )}
               </div>
+
               <div className="flex items-center gap-2">
                 <button
-                  onClick={() => setSelectedIndex(selectedIndex === index ? null : index)}
-                  className="p-1 hover:bg-white rounded transition-colors"
-                  title="Edit"
+                  onClick={() => handleSend(response, index)}
+                  disabled={isSending || response.sent}
+                  className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
                 >
-                  <Edit2 className="w-4 h-4 text-gray-500" />
+                  <Send className="w-4 h-4" />
+                  {isSending ? 'Sending...' : response.sent ? 'Sent' : 'Send'}
+                </button>
+                <button
+                  onClick={() => onImprove(currentContent)}
+                  className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-100 transition-colors text-sm"
+                >
+                  <RotateCcw className="w-4 h-4" />
+                  Improve
                 </button>
               </div>
             </div>
-
-            <div className="mb-3">
-              {selectedIndex === index ? (
-                <textarea
-                  value={response.content}
-                  onChange={(e) => {
-                    response.content = e.target.value;
-                  }}
-                  className="w-full p-3 border rounded-lg text-sm min-h-[150px] resize-y"
-                />
-              ) : (
-                <p className="text-sm whitespace-pre-wrap">{response.content}</p>
-              )}
-            </div>
-
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => handleSend(response)}
-                disabled={isSending || response.sent}
-                className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
-              >
-                <Send className="w-4 h-4" />
-                {isSending ? 'Sending...' : response.sent ? 'Sent' : 'Send'}
-              </button>
-              <button
-                onClick={() => onImprove(response.content)}
-                className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-100 transition-colors text-sm"
-              >
-                <RotateCcw className="w-4 h-4" />
-                Improve
-              </button>
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
