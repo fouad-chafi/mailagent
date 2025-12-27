@@ -97,29 +97,39 @@ Please improve the draft based on the feedback."""
             logger.error(f"Error improving response: {e}")
             return draft
 
-    async def get_or_generate_responses(self, email_id: str) -> list[dict]:
-        existing = db.get_responses(email_id)
-        if existing:
-            return [
-                {
-                    "id": r.id,
-                    "variant_number": r.variant_number,
-                    "content": r.content,
-                    "tone": r.tone,
-                    "sent": r.sent,
-                }
-                for r in existing
-            ]
+    async def get_or_generate_responses(self, email_id: str, regenerate: bool = True) -> list[dict]:
+        logger.info(f"[DEBUG] Starting get_or_generate_responses for email_id: {email_id}, regenerate: {regenerate}")
 
+        # Delete unsent responses if regenerating
+        if regenerate:
+            logger.info(f"[DEBUG] Deleting unsent responses for email_id: {email_id}")
+            deleted_count = db.delete_unsent_responses(email_id)
+            logger.info(f"[DEBUG] Deleted {deleted_count} unsent responses")
+
+        # Check for existing sent responses
+        logger.info(f"[DEBUG] Fetching existing responses for email_id: {email_id}")
+        existing = db.get_responses(email_id)
+        logger.info(f"[DEBUG] Found {len(existing)} existing responses")
+        sent_responses = [r for r in existing if r["sent"]]
+
+        # If we have sent responses, return them
+        if sent_responses:
+            logger.info(f"[DEBUG] Returning {len(sent_responses)} sent responses")
+            return sent_responses
+
+        logger.info(f"[DEBUG] No sent responses found, fetching email data for email_id: {email_id}")
         email_data = db.get_email(email_id)
         if not email_data:
             raise ValueError(f"Email {email_id} not found in database")
 
+        logger.info(f"[DEBUG] Email data retrieved successfully, keys: {list(email_data.keys())}")
+        logger.info(f"[DEBUG] Email data types: {[(k, type(v).__name__) for k, v in email_data.items()]}")
+
         responses_dict = await self.generate_responses(
             {
-                "from_addr": email_data.from_addr,
-                "subject": email_data.subject,
-                "body_text": email_data.body_text,
+                "from_addr": email_data["from_addr"],
+                "subject": email_data["subject"],
+                "body_text": email_data["body_text"],
             }
         )
 
@@ -129,15 +139,8 @@ Please improve the draft based on the feedback."""
         for i, (variant_key, content) in enumerate(responses_dict.items(), 1):
             tone = tones[i - 1] if i <= len(tones) else "neutral"
             response = db.save_response(email_id, i, content, tone)
-            saved_responses.append(
-                {
-                    "id": response.id,
-                    "variant_number": i,
-                    "content": content,
-                    "tone": tone,
-                    "sent": response.sent,
-                }
-            )
+            # response is already a dict now
+            saved_responses.append(response)
 
         return saved_responses
 
@@ -157,6 +160,7 @@ Email body:
     def _parse_response_json(self, response_text: str) -> dict[str, str]:
         response_clean = response_text.strip()
 
+        # Remove markdown code blocks
         if response_clean.startswith("```json"):
             response_clean = response_clean[7:]
         if response_clean.startswith("```"):
@@ -165,14 +169,25 @@ Email body:
             response_clean = response_clean[:-3]
         response_clean = response_clean.strip()
 
+        # Handle common LLM output issues: duplicate braces like {}{
+        # Remove any leading empty JSON objects
+        while response_clean.startswith("{}"):
+            response_clean = response_clean[2:]
+            response_clean = response_clean.lstrip()
+
         try:
             parsed = json.loads(response_clean)
         except json.JSONDecodeError:
+            # Fallback: extract JSON from anywhere in the text
             try:
                 start = response_clean.find("{")
                 end = response_clean.rfind("}") + 1
                 if start >= 0 and end > start:
-                    parsed = json.loads(response_clean[start:end])
+                    json_part = response_clean[start:end]
+                    # Clean again in case we have {}{ inside
+                    while json_part.startswith("{}"):
+                        json_part = json_part[2:].lstrip()
+                    parsed = json.loads(json_part)
                 else:
                     raise
             except json.JSONDecodeError:

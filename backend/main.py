@@ -251,7 +251,7 @@ async def list_emails(
 ):
     try:
         emails = db.list_emails(status=status, importance=importance, category=category, limit=limit, offset=offset)
-        return {"emails": [email_to_dict(e) for e in emails], "count": len(emails)}
+        return {"emails": emails, "count": len(emails)}
     except Exception as e:
         logger.error(f"Error listing emails: {e}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -262,7 +262,7 @@ async def get_email(email_id: str):
     email = db.get_email(email_id)
     if not email:
         raise HTTPException(status_code=404, detail="Email not found")
-    return email_to_dict(email)
+    return email
 
 
 @app.get("/api/emails/{email_id}/responses")
@@ -311,9 +311,9 @@ async def improve_email_response(email_id: str, request: ImproveResponseRequest)
 
         improved = await response_generator.improve_response(
             email_data={
-                "from_addr": email.from_addr,
-                "subject": email.subject,
-                "body_text": email.body_text,
+                "from_addr": email["from_addr"],
+                "subject": email["subject"],
+                "body_text": email["body_text"],
             },
             draft=request.draft,
             feedback=request.feedback,
