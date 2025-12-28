@@ -29,6 +29,7 @@ class Email(Base):
     id = Column(String, primary_key=True)
     thread_id = Column(String, nullable=True)
     from_addr = Column(String, nullable=False)
+    from_addr_raw = Column(String, nullable=True)  # Original From header
     to_addr = Column(String, nullable=True)
     subject = Column(Text, nullable=True)
     body_text = Column(Text, nullable=True)
@@ -140,6 +141,13 @@ class EmailDB:
                 raise
 
             try:
+                from_addr_raw_val = email.from_addr_raw
+                logger.debug(f"[DB DEBUG] from_addr_raw OK")
+            except Exception as e:
+                from_addr_raw_val = None
+                logger.debug(f"[DB DEBUG] from_addr_raw is None (OK for old records)")
+
+            try:
                 to_addr_val = email.to_addr
                 logger.debug(f"[DB DEBUG] to_addr OK")
             except Exception as e:
@@ -238,6 +246,7 @@ class EmailDB:
                 "id": email_id_val,
                 "thread_id": thread_id_val,
                 "from_addr": from_addr_val,
+                "from_addr_raw": from_addr_raw_val,
                 "to_addr": to_addr_val,
                 "subject": subject_val,
                 "body_text": body_text_val,
@@ -281,6 +290,7 @@ class EmailDB:
                     "id": email.id,
                     "thread_id": email.thread_id,
                     "from_addr": email.from_addr,
+                    "from_addr_raw": email.from_addr_raw,
                     "to_addr": email.to_addr,
                     "subject": email.subject,
                     "body_text": email.body_text,
@@ -303,6 +313,7 @@ class EmailDB:
             id=email_data["id"],
             thread_id=email_data.get("thread_id"),
             from_addr=email_data["from_addr"],
+            from_addr_raw=email_data.get("from_addr_raw"),
             to_addr=email_data.get("to_addr"),
             subject=email_data.get("subject"),
             body_text=email_data.get("body_text"),

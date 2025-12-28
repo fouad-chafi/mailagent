@@ -51,6 +51,7 @@ class GmailService:
         self._request_queue: list[asyncio.Queue] = []
         self._rate_limit_delay = 0.1
         self._last_request_time = 0
+        self._user_profile = None
 
     def authenticate(self) -> None:
         creds = None
@@ -74,7 +75,40 @@ class GmailService:
                 pickle.dump(creds, token)
 
         self.service = discovery.build("gmail", "v1", credentials=creds)
-        logger.info("Gmail authentication successful")
+
+        # Fetch user profile to get user's name and email
+        try:
+            profile = self.service.users().getProfile(userId="me").execute()
+            self._user_profile = {
+                "email_address": profile.get("emailAddress", ""),
+                "email": profile.get("emailAddress", "").split("@")[0] if profile.get("emailAddress") else "",
+                "name": self._extract_name_from_email(profile.get("emailAddress", ""))
+            }
+            logger.info(f"Gmail authentication successful for {self._user_profile['email_address']}")
+        except Exception as e:
+            logger.warning(f"Could not fetch user profile: {e}")
+            self._user_profile = {"email_address": "", "email": "", "name": "User"}
+
+    def _extract_name_from_email(self, email_addr: str) -> str:
+        """Extract a name from email address (e.g., 'john.doe@gmail.com' -> 'John Doe')"""
+        if not email_addr:
+            return "User"
+
+        local_part = email_addr.split("@")[0]
+        # Remove numbers and special characters, capitalize words
+        import re
+        cleaned = re.sub(r'[0-9._-]+', ' ', local_part)
+        words = cleaned.split()
+        if words:
+            return ' '.join(word.capitalize() for word in words if word)
+        return "User"
+
+    def get_user_profile(self) -> dict:
+        """Get the authenticated user's profile information"""
+        if not self._user_profile:
+            if not self.service:
+                self.authenticate()
+        return self._user_profile
 
     def _rate_limit(self):
         now = time.time()
@@ -116,10 +150,15 @@ class GmailService:
         except (TypeError, ValueError):
             date_obj = None
 
+        # Improved sender detection for newsletters/digests
+        from_addr = headers.get("From", "")
+        sender_name = self._extract_sender_name(from_addr, body_text or snippet)
+
         return {
             "id": msg_id,
             "thread_id": thread_id,
-            "from_addr": headers.get("From", ""),
+            "from_addr": sender_name,
+            "from_addr_raw": from_addr,  # Keep original for reference
             "to_addr": headers.get("To", ""),
             "subject": headers.get("Subject", ""),
             "body_text": body_text or snippet,
@@ -129,6 +168,65 @@ class GmailService:
             "has_attachments": has_attachments,
             "snippet": snippet,
         }
+
+    def _extract_sender_name(self, from_addr: str, body_text: str) -> str:
+        """
+        Extract the real sender name from newsletter/digest emails.
+        For regular emails, returns the From header as-is.
+        For newsletters (Medium, GitHub, etc.), extracts the relevant sender.
+        """
+        import re
+
+        # Common newsletter patterns to detect
+        newsletter_patterns = [
+            (r'<(.+?)@medium\.com>', 'Medium'),
+            (r'<notifications@github\.com>', 'GitHub'),
+            (r'<noreply@github\.com>', 'GitHub'),
+            (r'<.+@linkedin\.com>', 'LinkedIn'),
+            (r'<digest@.+>', 'Newsletter'),
+            (r'<newsletter@.+>', 'Newsletter'),
+            (r'<updates@.+>', 'Updates'),
+            (r'<noreply@.+>', 'Service'),
+        ]
+
+        from_lower = from_addr.lower()
+
+        # Check if this is a newsletter
+        for pattern, service_name in newsletter_patterns:
+            if re.search(pattern, from_lower):
+                # For newsletters, try to find a more specific sender in the body
+                # Look for patterns like "Stories for [Name]" or "Hi [Name],"
+                name_patterns = [
+                    r'Stories for ([A-Z][a-zA-Z\s]+)',  # Medium: "Stories for Abdou Tryhard"
+                    r'Hi ([A-Z][a-zA-Z]+),',  # Generic: "Hi John,"
+                    r'Dear ([A-Z][a-zA-Z]+),',  # Generic: "Dear John,"
+                    r'Hello ([A-Z][a-zA-Z]+),',  # Generic: "Hello John,"
+                ]
+
+                for name_pattern in name_patterns:
+                    match = re.search(name_pattern, body_text[:500])  # Search only first 500 chars
+                    if match:
+                        extracted_name = match.group(1).strip()
+                        if extracted_name and len(extracted_name) < 50:  # Sanity check
+                            return f"{service_name} ({extracted_name})"
+
+                # If no specific name found, return just the service name
+                return service_name
+
+        # For regular emails, clean up the From header
+        # Format: "Name <email@domain.com>" or "email@domain.com"
+        match = re.match(r'"?([^"<>]+)"?\s*<([^<>]+)>', from_addr)
+        if match:
+            return match.group(1).strip()
+        elif '<' not in from_addr and '>' not in from_addr:
+            return from_addr
+        else:
+            # Fallback: extract from angle brackets
+            match = re.match(r'<([^<>]+)>', from_addr)
+            if match:
+                email = match.group(1)
+                return email.split('@')[0]
+            return from_addr
 
     def sync_recent_emails(self, max_results: int = 50) -> list[dict]:
         if not self.service:

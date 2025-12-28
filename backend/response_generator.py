@@ -11,6 +11,7 @@ from typing import Optional
 from config import settings
 from database import db
 from llm_service import llm_service, LLMServiceError
+from gmail_service import gmail_service
 
 logger = logging.getLogger(__name__)
 
@@ -150,12 +151,18 @@ Please improve the draft based on the feedback."""
         if len(body) > 2000:
             body = body[:2000] + "..."
 
+        # Get user's name for signature
+        user_profile = gmail_service.get_user_profile()
+        user_name = user_profile.get("name", "User")
+
         return f"""From: {email_data.get('from_addr', 'Unknown')}
 Subject: {email_data.get('subject', '(no subject)')}
 To: {email_data.get('to_addr', 'Unknown')}
 
 Email body:
-{body}"""
+{body}
+
+IMPORTANT: When signing off, use "{user_name}" instead of "[Your Name]" or similar placeholders."""
 
     def _parse_response_json(self, response_text: str) -> dict[str, str]:
         response_clean = response_text.strip()

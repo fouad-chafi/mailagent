@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { User, Clock, FileText, RefreshCw, Loader2 } from 'lucide-react';
+import React from 'react';
+import { User, Clock, FileText, RefreshCw, Loader2, Sparkles, Mail } from 'lucide-react';
 
 export default function EmailDetail({ email, onGenerateResponses, generating }) {
   const formatDate = (dateStr) => {
@@ -8,97 +8,125 @@ export default function EmailDetail({ email, onGenerateResponses, generating }) 
   };
 
   const getImportanceBadge = (importance) => {
-    const colors = {
-      high: 'bg-red-100 text-red-700',
-      medium: 'bg-yellow-100 text-yellow-700',
-      low: 'bg-gray-100 text-gray-700',
+    const badges = {
+      high: 'bg-accent-red/20 text-accent-red border-accent-red/40',
+      medium: 'bg-accent-yellow/20 text-accent-yellow border-accent-yellow/40',
+      low: 'bg-dark-700 text-gray-400 border-dark-600',
     };
-    return colors[importance] || colors.low;
+    return badges[importance] || badges.low;
   };
 
   const getCategoryBadge = (category) => {
-    const colors = {
-      professionnel: 'bg-blue-100 text-blue-700',
-      personnel: 'bg-green-100 text-green-700',
-      newsletter: 'bg-purple-100 text-purple-700',
-      notification: 'bg-gray-100 text-gray-700',
-      urgent: 'bg-red-100 text-red-700',
-      commercial: 'bg-orange-100 text-orange-700',
-      administratif: 'bg-indigo-100 text-indigo-700',
+    const badges = {
+      professionnel: 'bg-accent-blue/20 text-accent-blue border-accent-blue/40',
+      personnel: 'bg-accent-green/20 text-accent-green border-accent-green/40',
+      newsletter: 'bg-accent-purple/20 text-accent-purple border-accent-purple/40',
+      notification: 'bg-dark-700 text-gray-400 border-dark-600',
+      urgent: 'bg-accent-red/20 text-accent-red border-accent-red/40',
+      commercial: 'bg-orange-500/20 text-orange-400 border-orange-500/40',
+      administratif: 'bg-indigo-500/20 text-indigo-400 border-indigo-500/40',
     };
-    return colors[category] || 'bg-gray-100 text-gray-700';
+    return badges[category] || 'bg-dark-700 text-gray-400 border-dark-600';
   };
 
   if (!email) {
     return (
-      <div className="flex-1 flex items-center justify-center text-gray-500">
-        <p>Select an email to view details</p>
+      <div className="flex-1 flex items-center justify-center text-gray-500 bg-dark-900">
+        <div className="text-center">
+          <Mail className="w-16 h-16 mx-auto mb-4 text-dark-700" />
+          <p className="text-gray-400">Select an email to view details</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="flex-1 overflow-y-auto">
-      <div className="p-6 border-b bg-gray-50">
-        <div className="flex items-start justify-between mb-4">
-          <h2 className="text-xl font-semibold">{email.subject || '(no subject)'}</h2>
-          <button
-            onClick={() => onGenerateResponses && onGenerateResponses(email)}
-            disabled={generating}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 transition-colors"
-          >
-            {generating ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              <RefreshCw className="w-4 h-4" />
-            )}
-            {generating ? 'Generating...' : 'Generate Responses'}
-          </button>
-        </div>
+    <div className="flex-1 flex flex-col bg-dark-900 overflow-hidden">
+      {/* Fixed Header */}
+      <div className="flex-shrink-0 bg-dark-800 border-b border-dark-700">
+        <div className="p-6">
+          <div className="flex items-start justify-between mb-4">
+            <div className="flex-1 min-w-0">
+              <h2 className="text-xl font-semibold text-white mb-3 leading-tight">
+                {email.subject || '(no subject)'}
+              </h2>
 
-        <div className="flex items-center gap-2 mb-4">
-          {email.importance && (
-            <span className={`text-xs px-2 py-1 rounded-full ${getImportanceBadge(email.importance)}`}>
-              {email.importance} priority
-            </span>
-          )}
-          {email.category && (
-            <span className={`text-xs px-2 py-1 rounded-full ${getCategoryBadge(email.category)}`}>
-              {email.category}
-            </span>
-          )}
-        </div>
-
-        <div className="flex items-center gap-4 text-sm text-gray-600">
-          <div className="flex items-center gap-2">
-            <User className="w-4 h-4" />
-            <span className="font-medium">{email.from_addr}</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <Clock className="w-4 h-4" />
-            <span>{formatDate(email.date)}</span>
-          </div>
-          {email.has_attachments && (
-            <div className="flex items-center gap-2">
-              <FileText className="w-4 h-4" />
-              <span>Has attachments</span>
+              <div className="flex items-center gap-2 flex-wrap">
+                {email.importance && (
+                  <span className={`text-xs px-2.5 py-1 rounded-full border font-medium ${getImportanceBadge(email.importance)}`}>
+                    {email.importance}
+                  </span>
+                )}
+                {email.category && (
+                  <span className={`text-xs px-2.5 py-1 rounded-full border font-medium ${getCategoryBadge(email.category)}`}>
+                    {email.category}
+                  </span>
+                )}
+              </div>
             </div>
-          )}
+
+            <button
+              onClick={() => onGenerateResponses && onGenerateResponses(email)}
+              disabled={generating}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-lg font-medium transition-all duration-200 flex-shrink-0 ml-4 ${
+                generating
+                  ? 'bg-dark-700 text-gray-400 cursor-not-allowed'
+                  : 'bg-accent-blue hover:bg-accent-blueHover text-white shadow-glow'
+              }`}
+            >
+              {generating ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Generating...
+                </>
+              ) : (
+                <>
+                  <Sparkles className="w-4 h-4" />
+                  Generate AI Responses
+                </>
+              )}
+            </button>
+          </div>
+
+          <div className="flex items-center gap-4 text-sm text-gray-400">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 bg-gradient-to-br from-accent-blue to-blue-600 rounded-full flex items-center justify-center">
+                <User className="w-4 h-4 text-white" />
+              </div>
+              <span className="text-gray-300">{email.from_addr}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Clock className="w-4 h-4" />
+              <span>{formatDate(email.date)}</span>
+            </div>
+            {email.has_attachments && (
+              <div className="flex items-center gap-2 px-2 py-1 bg-dark-700 rounded-lg">
+                <FileText className="w-4 h-4 text-accent-blue" />
+                <span>Has attachments</span>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
-      <div className="p-6">
-        {email.ai_summary && (
-          <div className="mb-6 p-4 bg-blue-50 border-l-4 border-blue-500 rounded">
-            <h3 className="text-sm font-semibold text-blue-700 mb-2">AI Summary</h3>
-            <p className="text-sm text-blue-900">{email.ai_summary}</p>
-          </div>
-        )}
+      {/* Scrollable Content */}
+      <div className="flex-1 overflow-y-auto">
+        <div className="p-6">
+          {email.ai_summary && (
+            <div className="mb-6 p-4 bg-accent-blue/10 border border-accent-blue/30 rounded-xl">
+              <div className="flex items-center gap-2 mb-2">
+                <Sparkles className="w-4 h-4 text-accent-blue" />
+                <h3 className="text-sm font-semibold text-accent-blue">AI Summary</h3>
+              </div>
+              <p className="text-sm text-gray-300 leading-relaxed">{email.ai_summary}</p>
+            </div>
+          )}
 
-        <div className="prose max-w-none">
-          <pre className="whitespace-pre-wrap font-sans text-sm leading-relaxed">
-            {email.body_text || '(no content)'}
-          </pre>
+          <div className="prose prose-invert prose-sm max-w-none">
+            <pre className="whitespace-pre-wrap font-sans text-sm leading-relaxed text-gray-300">
+              {email.body_text || '(no content)'}
+            </pre>
+          </div>
         </div>
       </div>
     </div>

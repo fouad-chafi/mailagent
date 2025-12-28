@@ -139,56 +139,79 @@ function App() {
   };
 
   return (
-    <div className="h-screen flex flex-col">
+    <div className="h-screen flex flex-col bg-dark-950">
       <StatusBar status={status} stats={stats} />
 
-      <div className="px-6 py-3 border-b bg-white flex items-center gap-4">
+      {/* Action Bar */}
+      <div className="px-6 py-3 border-b border-dark-700 bg-dark-900 flex items-center gap-3">
         <button
           onClick={handleSync}
           disabled={syncing}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 transition-colors"
+          className="btn-primary"
         >
           {syncing ? (
             <Loader2 className="w-4 h-4 animate-spin" />
           ) : (
             <RefreshCw className="w-4 h-4" />
           )}
-          Sync
+          {syncing ? 'Syncing...' : 'Sync Emails'}
         </button>
         <button
           onClick={handleHistoricalSync}
-          className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+          className="btn-secondary"
         >
           <Download className="w-4 h-4" />
           Historical Sync
         </button>
       </div>
 
+      {/* Main Content - 3 Column Layout */}
       <div className="flex-1 flex overflow-hidden">
-        <EmailList
-          emails={emails}
-          selectedEmail={selectedEmail}
-          onSelectEmail={handleSelectEmail}
-          onFilterChange={handleFilterChange}
-          filters={filters}
-        />
-
-        <div className="flex-1 flex flex-col">
-          <EmailDetail
-            email={selectedEmail}
-            onGenerateResponses={handleGenerateResponses}
-            generating={generating}
+        {/* Email List - Fixed width */}
+        <div className="w-96 flex-shrink-0">
+          <EmailList
+            emails={emails}
+            selectedEmail={selectedEmail}
+            onSelectEmail={handleSelectEmail}
+            onFilterChange={handleFilterChange}
+            filters={filters}
           />
-          {selectedEmail && (
-            <ResponseEditor
-              responses={responses}
-              email={selectedEmail}
-              onSend={handleSendResponse}
-              onImprove={handleImproveResponse}
-              generating={generating}
-            />
-          )}
         </div>
+
+        {/* Email Detail & Response Editor - 50/50 Split */}
+        {selectedEmail ? (
+          <>
+            {/* Email Detail - 50% */}
+            <div className="flex-1 flex flex-col border-r border-dark-700">
+              <EmailDetail
+                email={selectedEmail}
+                onGenerateResponses={handleGenerateResponses}
+                generating={generating}
+              />
+            </div>
+
+            {/* Response Editor - 50% */}
+            <div className="flex-1 flex flex-col">
+              <ResponseEditor
+                responses={responses}
+                email={selectedEmail}
+                onSend={handleSendResponse}
+                onImprove={handleImproveResponse}
+                generating={generating}
+              />
+            </div>
+          </>
+        ) : (
+          <div className="flex-1 flex items-center justify-center bg-dark-900">
+            <div className="text-center">
+              <div className="w-20 h-20 bg-dark-800 rounded-full flex items-center justify-center mx-auto mb-4">
+                <RefreshCw className="w-10 h-10 text-dark-700" />
+              </div>
+              <p className="text-gray-400 font-medium text-lg">Select an email to view</p>
+              <p className="text-gray-600 text-sm mt-2">Choose an email from the list to see details and generate AI responses</p>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
