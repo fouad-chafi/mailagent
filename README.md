@@ -33,13 +33,11 @@
 ---
 
 ## Screenshot
+<img width="2559" height="1258" alt="image" src="https://github.com/user-attachments/assets/a40d4a3c-8917-42b9-b25a-001823241d5f" />
 
-<!-- DASHBOARD_SCREENSHOT_PLACEHOLDER: Add your dashboard screenshot here -->
-<!--
-<p align="center">
-  <img src="docs/screenshots/dashboard.png" alt="MailAgent Dashboard" width="1200">
-</p>
--->
+
+
+<img width="2533" height="1197" alt="image" src="https://github.com/user-attachments/assets/e2c441e7-8328-4697-8324-71d17769fef7" />
 
 ---
 
@@ -435,11 +433,6 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 ---
 
-## License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
-
----
 
 ## Acknowledgments
 
